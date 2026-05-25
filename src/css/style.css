@@ -244,6 +244,12 @@ html, body {
   text-align: right;
 }
 
+.info-value .deg {
+  font-family: 'Courier New', monospace;
+  font-size: 1em;
+  vertical-align: baseline;
+}
+
 @media (max-width: 600px) {
   #controls {
     flex-direction: row;

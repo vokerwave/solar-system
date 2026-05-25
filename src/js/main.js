@@ -574,9 +574,9 @@ function showInfo(planet) {
   ];
   for (const section of sections) {
     if (planet.info[section.key]) {
-      html += `<h3>&gt; ${section.label}</h3><table>`;
+      html += `<h3>● ${section.label}</h3><table>`;
       for (const item of planet.info[section.key]) {
-        html += `<tr><td class="info-label">${item.label}</td><td class="info-value">${item.value}</td></tr>`;
+        html += `<tr><td class="info-label">${item.label}</td><td class="info-value">${item.value.replace(/°/g, '<span class="deg">°</span>')}</td></tr>`;
       }
       html += '</table>';
     }

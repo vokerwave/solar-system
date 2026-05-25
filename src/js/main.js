@@ -3,6 +3,7 @@ let planets = [];
 let speed = 1;
 let selectedPlanet = null;
 let stars = [];
+let nebulaData = [];
 let frame = 0;
 
 const canvas = document.getElementById('canvas');
@@ -71,28 +72,51 @@ function mulberry32(a) {
 }
 
 function generateStars() {
-  const saved = localStorage.getItem('solarStars');
-  if (saved) {
-    stars = JSON.parse(saved);
-    return;
-  }
   const seed = Date.now();
   const rand = mulberry32(seed);
   stars = [];
-  for (let i = 0; i < 600; i++) {
-    const isBlinker = rand() < 0.1;
+  for (let i = 0; i < 1000; i++) {
+    const isBlinker = rand() < 0.08;
+    let r, g, b;
+    const t = rand();
+    if (t < 0.55) { r = 225; g = 228; b = 245; }
+    else if (t < 0.70) { r = 200; g = 215; b = 255; }
+    else if (t < 0.82) { r = 255; g = 235; b = 200; }
+    else if (t < 0.92) { r = 255; g = 200; b = 160; }
+    else { r = 240; g = 170; b = 170; }
+    r += (rand() - 0.5) * 20;
+    g += (rand() - 0.5) * 20;
+    b += (rand() - 0.5) * 20;
     stars.push({
-      x: rand() * canvas.width,
-      y: rand() * canvas.height,
-      size: rand() * 2 + 0.3,
-      baseAlpha: rand() * 0.5 + 0.2,
+      x: rand(),
+      y: rand(),
+      size: rand() * 2.2 + 0.3,
+      r: Math.round(r), g: Math.round(g), b: Math.round(b),
+      baseAlpha: rand() * 0.4 + 0.25,
       phase: rand() * Math.PI * 2,
-      speed: isBlinker ? 0.02 + rand() * 0.03 : 0.005 + rand() * 0.01,
+      speed: isBlinker ? 0.02 + rand() * 0.04 : 0.005 + rand() * 0.01,
       blinker: isBlinker,
       amp: isBlinker ? 0.5 + rand() * 0.3 : 0.15 + rand() * 0.15,
     });
   }
-  localStorage.setItem('solarStars', JSON.stringify(stars));
+  const nrand = mulberry32(seed + 1);
+  nebulaData = [];
+  const nebulaColors = [
+    { r: 60, g: 40, b: 100 },
+    { r: 30, g: 60, b: 120 },
+    { r: 80, g: 30, b: 60 },
+    { r: 40, g: 70, b: 80 },
+    { r: 100, g: 50, b: 30 },
+  ];
+  for (let i = 0; i < 5; i++) {
+    nebulaData.push({
+      x: nrand(),
+      y: nrand(),
+      radius: 0.15 + nrand() * 0.2,
+      alpha: 0.015 + nrand() * 0.015,
+      ...nebulaColors[i],
+    });
+  }
 }
 
 function initPlanets(data) {
@@ -145,15 +169,48 @@ function update() {
   }
 }
 
+function drawNebula() {
+  const w = canvas.width;
+  const h = canvas.height;
+  for (const n of nebulaData) {
+    const grad = ctx.createRadialGradient(
+      n.x * w, n.y * h, 0,
+      n.x * w, n.y * h, n.radius * Math.min(w, h)
+    );
+    grad.addColorStop(0, `rgba(${n.r},${n.g},${n.b},${n.alpha})`);
+    grad.addColorStop(1, `rgba(${n.r},${n.g},${n.b},0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
 function drawStars() {
   for (const star of stars) {
     const twinkle = Math.sin(frame * star.speed + star.phase) * star.amp + (1 - star.amp);
     const alpha = star.baseAlpha * twinkle;
-    ctx.fillStyle = star.blinker ? `rgba(220,230,255,${alpha})` : `rgba(200,210,255,${alpha})`;
+    ctx.fillStyle = `rgba(${star.r},${star.g},${star.b},${alpha})`;
     ctx.beginPath();
-    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    ctx.arc(star.x * canvas.width, star.y * canvas.height, star.size, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawVignette() {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const r = Math.min(canvas.width, canvas.height) * 0.7;
+  const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function drawOrbits() {
@@ -165,13 +222,18 @@ function drawOrbits() {
     const b = planet.semiMinorAxis || a;
     const off = planet.centerOffset || 0;
 
-    ctx.setLineDash([5, 7]);
-    ctx.strokeStyle = 'rgba(130,170,220,0.25)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = hexToRgba(planet.color, 0.05);
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.ellipse(cx - off, cy, a * 1.08, b * 0.88, 0, 0, Math.PI * 2);
     ctx.stroke();
 
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = hexToRgba(planet.color, 0.2);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx - off, cy, a * 1.08, b * 0.88, 0, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.setLineDash([]);
   }
 }
@@ -328,10 +390,23 @@ function drawIceGiantBands(planet) {
   ctx.restore();
 }
 
+function drawPlanetGlow(planet) {
+  const gs = planet.size * 3.5;
+  const grad = ctx.createRadialGradient(planet.x, planet.y, 0, planet.x, planet.y, gs);
+  grad.addColorStop(0, hexToRgba(planet.color, 0.1));
+  grad.addColorStop(1, hexToRgba(planet.color, 0));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(planet.x, planet.y, gs, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawPlanets() {
   ctx.imageSmoothingEnabled = true;
   for (const planet of planets) {
     if (planet.orbitRadius === 0) continue;
+
+    drawPlanetGlow(planet);
 
     if (planet.id === 'saturn') {
       drawSaturnRings(planet);
@@ -510,8 +585,10 @@ function hideInfo() {
 function animate() {
   ctx.fillStyle = '#080810';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawNebula();
   drawStars();
   drawOrbits();
+  drawVignette();
   drawSun();
   drawPlanets();
   update();

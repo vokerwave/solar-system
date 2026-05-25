@@ -12,6 +12,10 @@ const ctx = canvas.getContext('2d');
 const SLOWEST_PERIOD = 164.8;
 const BASE_SPEED = 0.00003;
 
+const camera = { x: 0, y: 0, zoom: 1 };
+const MIN_ZOOM = 0.05;
+const MAX_ZOOM = 20;
+
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -477,17 +481,27 @@ function drawPlanets() {
   }
 }
 
+function screenToWorld(sx, sy) {
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  return {
+    x: cx + (sx - cx - camera.x) / camera.zoom,
+    y: cy + (sy - cy - camera.y) / camera.zoom,
+  };
+}
+
 function getClickedPlanet(mx, my) {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
+  const { x: wx, y: wy } = screenToWorld(mx, my);
   const sun = planets[0];
   if (sun) {
-    const d = Math.hypot(cx - mx, cy - my);
+    const d = Math.hypot(cx - wx, cy - wy);
     if (d <= sun.size + 5) return sun;
   }
   for (const planet of planets) {
     if (planet.orbitRadius === 0) continue;
-    if (Math.hypot(planet.x - mx, planet.y - my) <= planet.size + 5) {
+    if (Math.hypot(planet.x - wx, planet.y - wy) <= planet.size + 5) {
       return planet;
     }
   }
@@ -618,10 +632,19 @@ function animate() {
   updateBg();
   ctx.drawImage(bgCanvas, 0, 0);
   drawStars();
+
+  ctx.save();
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  ctx.translate(cx + camera.x, cy + camera.y);
+  ctx.scale(camera.zoom, camera.zoom);
+  ctx.translate(-cx, -cy);
+
   drawOrbits();
   drawSun();
   drawPlanets();
   update();
+  ctx.restore();
   if (frame % 60 === 0) {
     const angles = planets.map(p => p.angle);
     localStorage.setItem('solarPlanets', JSON.stringify(angles));
@@ -649,13 +672,56 @@ function init() {
   generateStars();
   initPlanets(PLANET_DATA);
   preloadImages(PLANET_DATA).then(() => animate());
-  canvas.addEventListener('click', e => {
-    if (e.target !== canvas) return;
+  let isDragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let camStartX = 0, camStartY = 0;
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const p = getClickedPlanet(x, y);
-    p ? showInfo(p) : hideInfo();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * factor));
+    const actualFactor = newZoom / camera.zoom;
+    camera.x = (1 - actualFactor) * (mx - cx) + actualFactor * camera.x;
+    camera.y = (1 - actualFactor) * (my - cy) + actualFactor * camera.y;
+    camera.zoom = newZoom;
+  }, { passive: false });
+
+  canvas.addEventListener('mousedown', e => {
+    isDragging = false;
+    const rect = canvas.getBoundingClientRect();
+    dragStartX = e.clientX - rect.left;
+    dragStartY = e.clientY - rect.top;
+    camStartX = camera.x;
+    camStartY = camera.y;
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (e.buttons !== 1) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const dx = mx - dragStartX;
+    const dy = my - dragStartY;
+    if (Math.hypot(dx, dy) > 5) {
+      isDragging = true;
+      camera.x = camStartX + dx;
+      camera.y = camStartY + dy;
+    }
+  });
+
+  canvas.addEventListener('mouseup', e => {
+    if (!isDragging) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const p = getClickedPlanet(x, y);
+      p ? showInfo(p) : hideInfo();
+    }
   });
   document.getElementById('speed-slider').addEventListener('input', e => {
     speed = parseFloat(e.target.value);

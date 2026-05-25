@@ -15,6 +15,13 @@ const BASE_SPEED = 0.00003;
 const camera = { x: 0, y: 0, zoom: 1 };
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 20;
+const PAN_LIMIT_WORLD = 650;
+
+function clampCamera() {
+  const limit = PAN_LIMIT_WORLD * camera.zoom;
+  camera.x = Math.min(limit, Math.max(-limit, camera.x));
+  camera.y = Math.min(limit, Math.max(-limit, camera.y));
+}
 
 
 function resizeCanvas() {
@@ -689,6 +696,7 @@ function init() {
     camera.x = (1 - actualFactor) * (mx - cx) + actualFactor * camera.x;
     camera.y = (1 - actualFactor) * (my - cy) + actualFactor * camera.y;
     camera.zoom = newZoom;
+    clampCamera();
   }, { passive: false });
 
   canvas.addEventListener('mousedown', e => {
@@ -711,6 +719,7 @@ function init() {
       isDragging = true;
       camera.x = camStartX + dx;
       camera.y = camStartY + dy;
+      clampCamera();
     }
   });
 

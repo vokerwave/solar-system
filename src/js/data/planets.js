@@ -234,8 +234,8 @@ const PLANET_DATA = [
     size: 20,
     orbitalPeriod: 84.01,
     eccentricity: 0.047,
-    imgPath: null,
-    imgPath2: null,
+    imgPath: 'public/uran/uranus1.png',
+    imgPath2: 'public/uran/uranus2.png',
     rotInterval: 30,
     info: {
       orbital: [
@@ -266,8 +266,8 @@ const PLANET_DATA = [
     size: 20,
     orbitalPeriod: 164.8,
     eccentricity: 0.009,
-    imgPath: null,
-    imgPath2: null,
+    imgPath: 'public/neptun/neptun1.png',
+    imgPath2: 'public/neptun/neptun2.png',
     rotInterval: 30,
     info: {
       orbital: [

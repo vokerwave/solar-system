@@ -423,10 +423,26 @@ function drawPlanets() {
     const imgKey = planet.showFirst ? planet.id : planet.id + '_rot';
     if (images[imgKey]) {
       const s = planet.size;
-      ctx.drawImage(images[imgKey], planet.x - s, planet.y - s, s * 2, s * 2);
+      if (planet.textureRotation) {
+        ctx.save();
+        ctx.translate(planet.x, planet.y);
+        ctx.rotate(planet.textureRotation);
+        ctx.drawImage(images[imgKey], -s, -s, s * 2, s * 2);
+        ctx.restore();
+      } else {
+        ctx.drawImage(images[imgKey], planet.x - s, planet.y - s, s * 2, s * 2);
+      }
     } else if (images[planet.id]) {
       const s = planet.size;
-      ctx.drawImage(images[planet.id], planet.x - s, planet.y - s, s * 2, s * 2);
+      if (planet.textureRotation) {
+        ctx.save();
+        ctx.translate(planet.x, planet.y);
+        ctx.rotate(planet.textureRotation);
+        ctx.drawImage(images[planet.id], -s, -s, s * 2, s * 2);
+        ctx.restore();
+      } else {
+        ctx.drawImage(images[planet.id], planet.x - s, planet.y - s, s * 2, s * 2);
+      }
     } else {
       ctx.fillStyle = planet.color;
       ctx.beginPath();
@@ -514,7 +530,15 @@ function drawPlanetPreview(planet) {
     ctx.beginPath();
     ctx.arc(cx, cy, s, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(images[imgKey], cx - s, cy - s, s * 2, s * 2);
+    if (planet.textureRotation) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(planet.textureRotation);
+      ctx.drawImage(images[imgKey], -s, -s, s * 2, s * 2);
+      ctx.restore();
+    } else {
+      ctx.drawImage(images[imgKey], cx - s, cy - s, s * 2, s * 2);
+    }
     ctx.restore();
   } else {
     ctx.fillStyle = planet.color;

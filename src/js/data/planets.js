@@ -204,6 +204,7 @@ const PLANET_DATA = [
     eccentricity: 0.054,
     imgPath: 'public/saturn/saturn1.png',
     imgPath2: 'public/saturn/saturn2.png',
+    textureRotation: Math.PI / 6,
     rotInterval: 18,
     info: {
       orbital: [

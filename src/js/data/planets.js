@@ -170,9 +170,9 @@ const PLANET_DATA = [
     size: 33,
     orbitalPeriod: 11.86,
     eccentricity: 0.048,
-    imgPath: null,
-    imgPath2: null,
-    rotInterval: 15,
+    imgPath: 'public/jupiter/jupiter1.png',
+    imgPath2: 'public/jupiter/jupiter2.png',
+    rotationPeriod: 0.4135,
     info: {
       orbital: [
         { label: 'Орбитальный период', value: '11.86 лет' },

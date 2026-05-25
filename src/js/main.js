@@ -4,6 +4,7 @@ let speed = 1;
 let selectedPlanet = null;
 let stars = [];
 let nebulaData = [];
+let bgCanvas = null;
 let frame = 0;
 
 const canvas = document.getElementById('canvas');
@@ -15,6 +16,7 @@ const BASE_SPEED = 0.00003;
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  bgCanvas = null;
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -169,41 +171,47 @@ function update() {
   }
 }
 
-function drawNebula() {
-  const w = canvas.width;
-  const h = canvas.height;
+function updateBg() {
+  if (bgCanvas && bgCanvas.width === canvas.width && bgCanvas.height === canvas.height) return;
+  bgCanvas = document.createElement('canvas');
+  bgCanvas.width = canvas.width;
+  bgCanvas.height = canvas.height;
+  const bg = bgCanvas.getContext('2d');
+
+  bg.fillStyle = '#080810';
+  bg.fillRect(0, 0, canvas.width, canvas.height);
+
+  const w = canvas.width, h = canvas.height;
   for (const n of nebulaData) {
-    const grad = ctx.createRadialGradient(
+    const grad = bg.createRadialGradient(
       n.x * w, n.y * h, 0,
       n.x * w, n.y * h, n.radius * Math.min(w, h)
     );
     grad.addColorStop(0, `rgba(${n.r},${n.g},${n.b},${n.alpha})`);
     grad.addColorStop(1, `rgba(${n.r},${n.g},${n.b},0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
+    bg.fillStyle = grad;
+    bg.fillRect(0, 0, w, h);
   }
+
+  const cx = w / 2, cy = h / 2;
+  const vr = Math.min(w, h) * 0.7;
+  const vgrad = bg.createRadialGradient(cx, cy, vr * 0.2, cx, cy, vr);
+  vgrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vgrad.addColorStop(1, 'rgba(0,0,0,0.5)');
+  bg.fillStyle = vgrad;
+  bg.fillRect(0, 0, w, h);
 }
 
 function drawStars() {
+  const w = canvas.width;
+  const h = canvas.height;
   for (const star of stars) {
     const twinkle = Math.sin(frame * star.speed + star.phase) * star.amp + (1 - star.amp);
     const alpha = star.baseAlpha * twinkle;
     ctx.fillStyle = `rgba(${star.r},${star.g},${star.b},${alpha})`;
-    ctx.beginPath();
-    ctx.arc(star.x * canvas.width, star.y * canvas.height, star.size, 0, Math.PI * 2);
-    ctx.fill();
+    const s = star.size < 1 ? 1 : star.size;
+    ctx.fillRect(star.x * w, star.y * h, s, s);
   }
-}
-
-function drawVignette() {
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const r = Math.min(canvas.width, canvas.height) * 0.7;
-  const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 function hexToRgba(hex, alpha) {
@@ -583,12 +591,10 @@ function hideInfo() {
 }
 
 function animate() {
-  ctx.fillStyle = '#080810';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawNebula();
+  updateBg();
+  ctx.drawImage(bgCanvas, 0, 0);
   drawStars();
   drawOrbits();
-  drawVignette();
   drawSun();
   drawPlanets();
   update();
